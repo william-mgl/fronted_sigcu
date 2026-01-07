@@ -1,24 +1,14 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login({ onLogin }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!email || !password) {
-      alert("Por favor complete todos los campos");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await onLogin({ email, password });
-    } finally {
-      setLoading(false);
-    }
+    onLogin({ email, password });
   };
 
   return (
@@ -26,48 +16,17 @@ export default function Login({ onLogin }) {
       <div className="card shadow-lg border-0" style={{ width: "420px" }}>
         <div className="card-body p-5">
           <h3 className="text-center mb-4 fw-bold">
-            <i className="bi bi-mortarboard-fill me-2 text-primary"></i>
             UTM – Comedor Inteligente
           </h3>
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label fw-semibold">
-                Correo institucional
-              </label>
-              <input
-                type="email"
-                className="form-control form-control-lg"
-                placeholder="ejemplo@utm.edu.ec"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="form-label fw-semibold">Contraseña</label>
-              <input
-                type="password"
-                className="form-control form-control-lg"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <button
-              className="btn btn-primary w-100 btn-lg"
-              disabled={loading}
-            >
-              {loading ? "Ingresando..." : "Iniciar sesión"}
-            </button>
+            <input type="email" placeholder="Correo" value={email} onChange={e => setEmail(e.target.value)} className="form-control mb-3" />
+            <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} className="form-control mb-3" />
+            <button className="btn btn-primary w-100">Iniciar sesión</button>
           </form>
 
           <p className="text-center mt-4">
-            ¿No tienes cuenta?{" "}
-            <a href="/register" className="text-primary fw-semibold">
-              Crear cuenta
-            </a>
+            ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>
           </p>
         </div>
       </div>
