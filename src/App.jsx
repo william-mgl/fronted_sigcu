@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -28,7 +28,7 @@ function App() {
 
       if (res.ok) {
         alert("Cuenta creada correctamente. Ahora inicia sesión.");
-        window.location.href = "/login";
+        window.location.hash = "#/login";
       } else {
         alert(data.error || "Error creando la cuenta");
       }
@@ -57,7 +57,7 @@ function App() {
         alert("Bienvenido!");
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        window.location.href = "/dashboard";
+        window.location.hash = "#/dashboard";
       } else {
         alert(data.error || "Credenciales incorrectas");
       }
@@ -68,16 +68,19 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route path="/register" element={<Register onRegister={handleRegister} />} />
+        <Route
+          path="/register"
+          element={<Register onRegister={handleRegister} />}
+        />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/comedores/:facultadId" element={<Comedores />} />
         <Route path="/comedor/:comedorId" element={<Comedor />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

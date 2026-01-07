@@ -2,35 +2,45 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaUtensils, FaArrowLeft } from "react-icons/fa";
 
+// URL del backend (Render)
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Comedores() {
   const { facultadId } = useParams();
   const navigate = useNavigate();
+
   const [comedores, setComedores] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!facultadId) return;
 
-    fetch(`http://localhost:4000/api/comedores/facultad/${facultadId}`)
-      .then(res => res.json())
-      .then(data => {
-        setComedores(data);
+    const token = localStorage.getItem("token");
+
+    fetch(`${API_URL}/api/comedores/facultad/${facultadId}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setComedores(data || []);
         setLoading(false);
       })
-      .catch(err => {
-        console.error(err);
+      .catch((err) => {
+        console.error("Error cargando comedores:", err);
         setLoading(false);
       });
   }, [facultadId]);
 
-  if (loading) return <div className="text-center mt-5 text-white fs-4">Cargando...</div>;
+  if (loading) {
+    return <div className="text-center mt-5 text-white fs-4">Cargando...</div>;
+  }
 
   return (
     <div
       className="d-flex flex-column align-items-center min-vh-100 text-white p-4"
-      style={{ 
-        background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)", 
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" 
+      style={{
+        background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       }}
     >
       {/* Header */}
@@ -53,7 +63,8 @@ export default function Comedores() {
             No hay comedores disponibles en esta facultad
           </p>
         )}
-        {comedores.map(c => (
+
+        {comedores.map((c) => (
           <div
             key={c.id}
             className="col-md-3 p-4 rounded-4 cursor-pointer d-flex flex-column align-items-center text-center glass-card"
@@ -61,7 +72,11 @@ export default function Comedores() {
           >
             <FaUtensils size={50} className="mb-3 gradient-icon" />
             <h5 className="fw-bold mb-2">{c.nombre}</h5>
-            <span className={`px-3 py-1 rounded-pill fw-semibold ${c.abierto ? 'open' : 'closed'}`}>
+            <span
+              className={`px-3 py-1 rounded-pill fw-semibold ${
+                c.abierto ? "open" : "closed"
+              }`}
+            >
               {c.abierto ? "Abierto" : "Cerrado"}
             </span>
           </div>
@@ -78,12 +93,12 @@ export default function Comedores() {
         .glass-card {
           background: rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(10px);
-          box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
           transition: all 0.3s ease;
         }
         .glass-card:hover {
           transform: translateY(-10px) scale(1.02);
-          box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
           background: rgba(255, 255, 255, 0.15);
         }
         .gradient-icon {
@@ -92,7 +107,7 @@ export default function Comedores() {
           -webkit-text-fill-color: transparent;
         }
         .text-shadow {
-          text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
+          text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
         }
         .open {
           background-color: #4caf50;

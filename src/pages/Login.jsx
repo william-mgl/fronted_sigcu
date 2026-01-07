@@ -3,10 +3,22 @@ import { useState } from "react";
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onLogin({ email, password });
+
+    if (!email || !password) {
+      alert("Por favor complete todos los campos");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await onLogin({ email, password });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -20,7 +32,9 @@ export default function Login({ onLogin }) {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label className="form-label fw-semibold">Correo institucional</label>
+              <label className="form-label fw-semibold">
+                Correo institucional
+              </label>
               <input
                 type="email"
                 className="form-control form-control-lg"
@@ -35,15 +49,17 @@ export default function Login({ onLogin }) {
               <input
                 type="password"
                 className="form-control form-control-lg"
-                placeholder="•••••••••••"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
-            <button className="btn btn-primary w-100 btn-lg">
-              <i className="bi bi-box-arrow-in-right me-2"></i>
-              Iniciar sesión
+            <button
+              className="btn btn-primary w-100 btn-lg"
+              disabled={loading}
+            >
+              {loading ? "Ingresando..." : "Iniciar sesión"}
             </button>
           </form>
 

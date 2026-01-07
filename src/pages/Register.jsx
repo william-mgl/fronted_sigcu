@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 
+// URL del backend (Render o Local)
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Register() {
   const [facultades, setFacultades] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -10,45 +14,64 @@ export default function Register() {
     facultad_id: "",
   });
 
-  // Cargar facultades desde backend
+  // =========================
+  // CARGAR FACULTADES
+  // =========================
   useEffect(() => {
-    fetch("http://localhost:4000/api/facultades")
+    fetch(`${API_URL}/api/facultades`)
       .then((res) => res.json())
       .then((data) => setFacultades(data))
-      .catch((err) => console.error("Error cargando facultades", err));
+      .catch((err) =>
+        console.error("Error cargando facultades:", err)
+      );
   }, []);
 
-  // Manejo de cambios en el formulario
-  const handleChange = (e) =>
+  // =========================
+  // MANEJO DE INPUTS
+  // =========================
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-  // 🚀 FUNCIÓN QUE REALIZA EL REGISTRO EN EL BACKEND
+  // =========================
+  // REGISTRO
+  // =========================
   const handleRegister = async () => {
+    if (!form.nombre || !form.email || !form.password || !form.facultad_id) {
+      alert("Todos los campos son obligatorios");
+      return;
+    }
+
     try {
-      const res = await fetch("http://localhost:4000/api/auth/register", {
+      setLoading(true);
+
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           nombre: form.nombre,
           email: form.email,
           password: form.password,
           rol: "estudiante",
-          facultad_id: form.facultad_id, // ✅ CORREGIDO
+          facultad_id: form.facultad_id,
         }),
       });
 
       const data = await res.json();
-      console.log("Respuesta backend:", data);
 
       if (res.ok) {
         alert("Cuenta creada con éxito");
         window.location.href = "/login";
       } else {
-        alert("Error: " + data.error);
+        alert(data.error || "Error al crear la cuenta");
       }
     } catch (error) {
-      alert("Error en la petición");
-      console.error(error);
+      console.error("Error registro:", error);
+      alert("No se pudo conectar con el servidor");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,7 +122,7 @@ export default function Register() {
                 type="password"
                 className="form-control form-control-lg"
                 name="password"
-                placeholder="•••••••••"
+                placeholder="••••••••"
                 value={form.password}
                 onChange={handleChange}
               />
@@ -122,9 +145,11 @@ export default function Register() {
               </select>
             </div>
 
-            <button className="btn btn-success w-100 btn-lg">
-              <i className="bi bi-check2-circle me-2"></i>
-              Crear cuenta
+            <button
+              className="btn btn-success w-100 btn-lg"
+              disabled={loading}
+            >
+              {loading ? "Creando cuenta..." : "Crear cuenta"}
             </button>
           </form>
 
