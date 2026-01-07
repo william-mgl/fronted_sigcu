@@ -1,14 +1,18 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 
 export default function Login({ onLogin }) {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onLogin({ email, password });
+
+    try {
+      await onLogin({ email, password });
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
+      alert("No se pudo conectar con el servidor o credenciales inválidas");
+    }
   };
 
   return (
@@ -20,13 +24,38 @@ export default function Login({ onLogin }) {
           </h3>
 
           <form onSubmit={handleSubmit}>
-            <input type="email" placeholder="Correo" value={email} onChange={e => setEmail(e.target.value)} className="form-control mb-3" />
-            <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} className="form-control mb-3" />
-            <button className="btn btn-primary w-100">Iniciar sesión</button>
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Correo institucional</label>
+              <input
+                type="email"
+                className="form-control form-control-lg"
+                placeholder="ejemplo@utm.edu.ec"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label fw-semibold">Contraseña</label>
+              <input
+                type="password"
+                className="form-control form-control-lg"
+                placeholder="•••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <button className="btn btn-primary w-100 btn-lg">
+              Iniciar sesión
+            </button>
           </form>
 
           <p className="text-center mt-4">
-            ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>
+            ¿No tienes cuenta?{" "}
+            <a href="/register" className="text-primary fw-semibold">
+              Crear cuenta
+            </a>
           </p>
         </div>
       </div>
