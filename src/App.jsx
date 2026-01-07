@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -6,13 +7,20 @@ import Dashboard from "./pages/Dashboard";
 import Comedores from "./pages/Comedores";
 import Comedor from "./pages/Comedor";
 
+// URL del backend (Render)
+const API_URL = import.meta.env.VITE_API_URL;
+
 function App() {
-  // Función para registrar usuario
+  // =========================
+  // REGISTRO
+  // =========================
   const handleRegister = async (form) => {
     try {
-      const res = await fetch("http://localhost:4000/api/auth/register", {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(form),
       });
 
@@ -24,18 +32,22 @@ function App() {
       } else {
         alert(data.error || "Error creando la cuenta");
       }
-    } catch (err) {
-      console.error("Error:", err);
-      alert("Error conectando al servidor");
+    } catch (error) {
+      console.error("Error register:", error);
+      alert("No se pudo conectar con el servidor");
     }
   };
 
-  // Función para iniciar sesión
+  // =========================
+  // LOGIN
+  // =========================
   const handleLogin = async (form) => {
     try {
-      const res = await fetch("http://localhost:4000/api/auth/login", {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(form),
       });
 
@@ -49,9 +61,9 @@ function App() {
       } else {
         alert(data.error || "Credenciales incorrectas");
       }
-    } catch (err) {
-      console.error("Error:", err);
-      alert("Error conectando al servidor");
+    } catch (error) {
+      console.error("Error login:", error);
+      alert("No se pudo conectar con el servidor");
     }
   };
 
