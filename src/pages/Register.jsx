@@ -1,203 +1,170 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaUser, FaEnvelope, FaLock, FaUniversity, FaUserPlus, FaArrowLeft, FaCheckCircle } from "react-icons/fa";
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Register() {
-  const navigate = useNavigate();
-  
-  // Estados del formulario
-  const [nombre, setNombre] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [facultadId, setFacultadId] = useState("");
-  
-  // Datos y Feedback
   const [facultades, setFacultades] = useState([]);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [form, setForm] = useState({
+    nombre: "",
+    email: "",
+    password: "",
+    facultad_id: "",
+  });
+  const [loading, setLoading] = useState(false);
 
-  // 1. Cargar Facultades automáticamente al entrar
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
-    fetch(`${API_URL}/facultades`)
-      .then(res => {
-        if (!res.ok) throw new Error("Error fetching facultades");
-        return res.json();
-      })
-      .then(data => setFacultades(data))
-      .catch(err => console.error("Error cargando facultades", err));
+    fetch(`${API_URL}/api/facultades`)
+      .then((res) => res.json())
+      .then((data) => setFacultades(data))
+      .catch((err) => console.error("Error backend facultades:", err));
   }, []);
 
-  // 2. Manejar el Registro
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError(null);
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
-    if (!facultadId) {
-        setError("Por favor selecciona tu facultad");
-        return;
+  const handleRegister = async () => {
+    if (!form.nombre || !form.email || !form.password || !form.facultad_id) {
+      return alert("Completa todos los campos");
     }
 
+    setLoading(true);
+
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            nombre, 
-            email, 
-            password, 
-            facultad_id: facultadId, 
-            rol: 'estudiante' // Siempre creamos estudiantes por defecto aquí
+        body: JSON.stringify({
+          nombre: form.nombre,
+          email: form.email,
+          password: form.password,
+          facultad_id: form.facultad_id,
+          rol: "estudiante",
         }),
       });
 
       const data = await res.json();
-
       if (res.ok) {
-        setSuccess(true);
-        // Esperamos 2 segundos mostrando el éxito y redirigimos
-        setTimeout(() => navigate('/login'), 2000); 
+        alert("Cuenta creada con éxito");
+        window.location.href = "/login";
       } else {
-        setError(data.error || "Error al registrarse. Intenta con otro correo.");
+        alert(data.error || "Error al crear cuenta");
       }
     } catch (err) {
       console.error(err);
-      setError("Error de conexión con el servidor");
+      alert("Error en la petición");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleRegister();
+  };
+
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 p-4"
-         style={{ 
-             background: "linear-gradient(135deg, #000428, #004e92)", 
-             overflow: "hidden",
-             position: "relative"
-         }}>
+    <div
+      className="d-flex justify-content-center align-items-center vh-100"
+      style={{
+        background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      }}
+    >
+      <div className="card glass-card shadow-lg p-5" style={{ width: "480px" }}>
+        <h3 className="text-center mb-4 fw-bold text-white">
+          <i className="bi bi-person-plus-fill me-2"></i> Crear cuenta UTM
+        </h3>
 
-      {/* ELEMENTOS DE FONDO (Ambientación) */}
-      <div style={{ position: "absolute", top: "-10%", left: "-10%", width: "400px", height: "400px", background: "rgba(0, 255, 127, 0.1)", borderRadius: "50%", filter: "blur(80px)" }}></div>
-      <div style={{ position: "absolute", bottom: "-10%", right: "-10%", width: "300px", height: "300px", background: "rgba(255, 0, 128, 0.1)", borderRadius: "50%", filter: "blur(60px)" }}></div>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label className="form-label fw-semibold text-white">Nombre completo</label>
+            <input
+              type="text"
+              className="form-control form-control-lg"
+              name="nombre"
+              placeholder="Juan Pérez"
+              value={form.nombre}
+              onChange={handleChange}
+            />
+          </div>
 
-      {/* TARJETA GLASSMORPHISM */}
-      <div className="card border-0 shadow-lg p-4 animate__animated animate__fadeInUp"
-           style={{
-               width: "100%",
-               maxWidth: "500px",
-               background: "rgba(255, 255, 255, 0.1)", 
-               backdropFilter: "blur(16px)",
-               borderRadius: "20px",
-               border: "1px solid rgba(255, 255, 255, 0.2)"
-           }}>
-        
-        {/* HEADER DE LA TARJETA */}
-        <div className="text-center text-white mb-4">
-            {success ? (
-                <div className="animate__animated animate__bounceIn">
-                    <FaCheckCircle size={60} className="text-success mb-3" />
-                    <h2 className="fw-bold">¡Cuenta Creada!</h2>
-                    <p>Redirigiendo al login...</p>
-                </div>
-            ) : (
-                <>
-                    <div className="mb-3 bg-white bg-opacity-10 rounded-circle d-inline-flex p-3 shadow-sm">
-                        <FaUserPlus size={40} className="text-info" />
-                    </div>
-                    <h2 className="fw-bold">Crear Cuenta</h2>
-                    <p className="text-white-50 small">Únete a la comunidad universitaria</p>
-                </>
-            )}
-        </div>
+          <div className="mb-3">
+            <label className="form-label fw-semibold text-white">Correo institucional</label>
+            <input
+              type="email"
+              className="form-control form-control-lg"
+              name="email"
+              placeholder="ejemplo@utm.edu.ec"
+              value={form.email}
+              onChange={handleChange}
+            />
+          </div>
 
-        {!success && (
-            <form onSubmit={handleRegister} className="d-flex flex-column gap-3">
-                
-                {/* ALERTA DE ERROR */}
-                {error && (
-                    <div className="alert alert-danger py-2 small d-flex align-items-center gap-2 animate__animated animate__shakeX">
-                        ❌ {error}
-                    </div>
-                )}
+          <div className="mb-3">
+            <label className="form-label fw-semibold text-white">Contraseña</label>
+            <input
+              type="password"
+              className="form-control form-control-lg"
+              name="password"
+              placeholder="•••••••••"
+              value={form.password}
+              onChange={handleChange}
+            />
+          </div>
 
-                {/* INPUT: NOMBRE */}
-                <div className="input-group input-group-lg">
-                    <span className="input-group-text bg-dark border-secondary text-info"><FaUser /></span>
-                    <input 
-                        type="text" 
-                        className="form-control bg-dark border-secondary text-white"
-                        placeholder="Nombre Completo"
-                        value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
-                        required
-                    />
-                </div>
-
-                {/* INPUT: EMAIL */}
-                <div className="input-group input-group-lg">
-                    <span className="input-group-text bg-dark border-secondary text-info"><FaEnvelope /></span>
-                    <input 
-                        type="email" 
-                        className="form-control bg-dark border-secondary text-white"
-                        placeholder="Correo Institucional"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-
-                {/* INPUT: PASSWORD */}
-                <div className="input-group input-group-lg">
-                    <span className="input-group-text bg-dark border-secondary text-info"><FaLock /></span>
-                    <input 
-                        type="password" 
-                        className="form-control bg-dark border-secondary text-white"
-                        placeholder="Contraseña Segura"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                </div>
-
-                {/* SELECT: FACULTAD */}
-                <div className="input-group input-group-lg">
-                    <span className="input-group-text bg-dark border-secondary text-info"><FaUniversity /></span>
-                    <select 
-                        className="form-select bg-dark border-secondary text-white"
-                        value={facultadId}
-                        onChange={(e) => setFacultadId(e.target.value)}
-                        required
-                        style={{ cursor: "pointer" }}
-                    >
-                        <option value="">Selecciona tu Facultad...</option>
-                        {facultades.map(f => (
-                            <option key={f.id} value={f.id}>{f.nombre}</option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* BOTÓN REGISTRAR */}
-                <button 
-                    type="submit" 
-                    className="btn btn-info btn-lg w-100 fw-bold mt-2 shadow text-white hover-scale"
-                    style={{ borderRadius: "10px", transition: "0.3s" }}
-                >
-                    🚀 Registrarme
-                </button>
-            </form>
-        )}
-
-        {/* FOOTER: VOLVER AL LOGIN */}
-        <div className="text-center mt-4 border-top border-secondary pt-3">
-            <button 
-                onClick={() => navigate('/login')} 
-                className="btn btn-link text-white-50 text-decoration-none d-flex align-items-center justify-content-center gap-2 mx-auto"
-                style={{ fontSize: "0.9rem" }}
+          <div className="mb-4">
+            <label className="form-label fw-semibold text-white">Facultad</label>
+            <select
+              className="form-select form-select-lg"
+              name="facultad_id"
+              value={form.facultad_id}
+              onChange={handleChange}
             >
-                <FaArrowLeft /> Volver al inicio de sesión
-            </button>
-        </div>
+              <option value="">Seleccione una facultad</option>
+              {facultades.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
 
+          <button
+            className="btn btn-success w-100 btn-lg d-flex justify-content-center align-items-center gap-2"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Creando cuenta..." : <><i className="bi bi-check2-circle"></i> Crear cuenta</>}
+          </button>
+        </form>
+
+        <p className="text-center mt-4 text-white">
+          ¿Ya tienes cuenta?{" "}
+          <a href="/login" className="text-info fw-semibold">
+            Iniciar sesión
+          </a>
+        </p>
       </div>
+
+      <style jsx>{`
+        .glass-card {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(12px);
+          border-radius: 1rem;
+        }
+        .btn-success {
+          transition: all 0.3s ease;
+        }
+        .btn-success:hover:not(:disabled) {
+          transform: translateY(-2px);
+          background-color: #28a745cc;
+        }
+        .form-control:focus,
+        .form-select:focus {
+          border-color: #28a745;
+          box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        }
+      `}</style>
     </div>
   );
 }
