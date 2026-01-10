@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+// 1. IMPORTANTE: Importamos Link para la navegación interna sin recargar
+import { Link } from "react-router-dom"; 
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -9,6 +11,13 @@ export default function Home() {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  // Función para cerrar sesión sin recargar la página bruscamente
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    setUser(null); // Actualizamos el estado para que la vista cambie al instante
+  };
 
   return (
     <div
@@ -33,15 +42,22 @@ export default function Home() {
         <div className="d-flex justify-content-center gap-3">
           {!user ? (
             <>
-              <a href="/login" className="btn btn-warning btn-lg px-4 fw-semibold rounded-pill">
+              {/* 2. CAMBIO CLAVE: Usamos Link en lugar de <a> */}
+              <Link 
+                to="/login" 
+                className="btn btn-warning btn-lg px-4 fw-semibold rounded-pill"
+              >
                 <i className="bi bi-box-arrow-in-right me-2"></i>
                 Iniciar sesión
-              </a>
+              </Link>
 
-              <a href="/register" className="btn btn-outline-light btn-lg px-4 fw-semibold rounded-pill">
+              <Link 
+                to="/register" 
+                className="btn btn-outline-light btn-lg px-4 fw-semibold rounded-pill"
+              >
                 <i className="bi bi-person-plus me-2"></i>
                 Crear cuenta
-              </a>
+              </Link>
             </>
           ) : (
             <>
@@ -49,11 +65,7 @@ export default function Home() {
                 Bienvenido, {user.nombre}
               </span>
               <button
-                onClick={() => {
-                  localStorage.removeItem("user");
-                  localStorage.removeItem("token");
-                  window.location.reload();
-                }}
+                onClick={handleLogout}
                 className="btn btn-outline-light btn-lg px-4 fw-semibold rounded-pill"
               >
                 Cerrar sesión
