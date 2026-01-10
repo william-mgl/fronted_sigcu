@@ -1,118 +1,205 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaUser, FaLock, FaUniversity, FaUserShield, FaIdCard, FaSignInAlt, FaUserPlus } from "react-icons/fa";
 
-export default function Login({ onLogin }) {
+const API_URL = import.meta.env.VITE_API_URL;
+
+export default function Login() {
+  const navigate = useNavigate();
+  
+  // Estado para el switch: 'cliente' o 'admin'
+  const [view, setView] = useState("cliente"); 
+  
+  // Estados del formulario
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const API_URL = import.meta.env.VITE_API_URL;
+  const [adminId, setAdminId] = useState("");
+  const [adminName, setAdminName] = useState("");
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
 
-    if (!email || !password) return alert("Ingresa tu correo y contraseña");
-
-    setLoading(true);
+    // Definir URL y Datos según quién intenta entrar
+    const endpoint = view === "cliente" ? "/login" : "/admin-login";
+    
+    const bodyData = view === "cliente" 
+        ? { email, password } 
+        : { adminId, adminName };
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(bodyData),
       });
 
       const data = await res.json();
 
       if (res.ok) {
+        // Guardar token y usuario
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        alert("Bienvenido " + data.user.nombre + "!");
-        window.location.href = "/dashboard";
+
+        // Redirigir según el rol
+        if (view === "admin" || data.user.rol === "admin_comedor") {
+            navigate("/admin-dashboard");
+        } else {
+            navigate("/dashboard");
+        }
       } else {
-        alert(data.error || "Credenciales incorrectas");
+        setError(data.error || "Error al iniciar sesión");
       }
-    } catch (error) {
-      console.error("Error login:", error);
-      alert("No se pudo conectar con el servidor");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setError("Error de conexión con el servidor");
     }
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center vh-100"
-      style={{
-        background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)",
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      }}
-    >
-      <div className="card glass-card shadow-lg p-5" style={{ width: "400px" }}>
-        <h3 className="text-center mb-4 fw-bold text-white">
-          <i className="bi bi-mortarboard-fill me-2"></i>
-          Iniciar Sesión UTM
-        </h3>
+    <div className="d-flex align-items-center justify-content-center vh-100"
+         style={{ 
+             background: "radial-gradient(circle at center, #1a2a6c, #b21f1f, #fdbb2d)", // Opción A: Colorido
+             // Opción B (Más serio): background: "linear-gradient(135deg, #004e92, #000428)", 
+             background: "linear-gradient(135deg, #000428, #004e92)", 
+             overflow: "hidden"
+         }}>
+      
+      {/* CÍRCULOS DECORATIVOS DE FONDO (Efecto moderno) */}
+      <div style={{ position: "absolute", top: "10%", left: "20%", width: "300px", height: "300px", background: "rgba(255,255,255,0.05)", borderRadius: "50%", filter: "blur(50px)" }}></div>
+      <div style={{ position: "absolute", bottom: "10%", right: "20%", width: "200px", height: "200px", background: "rgba(0,128,255,0.1)", borderRadius: "50%", filter: "blur(40px)" }}></div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label fw-semibold text-white">
-              Correo institucional
-            </label>
-            <input
-              type="email"
-              className="form-control form-control-lg"
-              placeholder="ejemplo@utm.edu.ec"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+      {/* TARJETA GLASSMORPHISM */}
+      <div className="card border-0 shadow-lg p-4"
+           style={{
+               width: "100%",
+               maxWidth: "450px",
+               background: "rgba(255, 255, 255, 0.1)", // Transparencia
+               backdropFilter: "blur(16px)", // Efecto borroso
+               borderRadius: "20px",
+               border: "1px solid rgba(255, 255, 255, 0.2)"
+           }}>
+        
+        <div className="text-center text-white mb-4">
+            <div className="mb-3">
+                {view === "cliente" ? (
+                    <FaUniversity size={50} className="text-info animate__animated animate__fadeIn" />
+                ) : (
+                    <FaUserShield size={50} className="text-warning animate__animated animate__fadeIn" />
+                )}
+            </div>
+            <h2 className="fw-bold">Bienvenido</h2>
+            <p className="text-white-50 small">Sistema de Comedores Universitarios</p>
+        </div>
 
-          <div className="mb-4">
-            <label className="form-label fw-semibold text-white">Contraseña</label>
-            <input
-              type="password"
-              className="form-control form-control-lg"
-              placeholder="••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+        {/* SWITCH TIPO PESTAÑAS */}
+        <div className="d-flex justify-content-center mb-4 bg-dark bg-opacity-50 rounded-pill p-1">
+            <button 
+                className={`btn rounded-pill w-50 fw-bold transition-all ${view === 'cliente' ? 'btn-primary shadow' : 'text-white'}`}
+                onClick={() => { setView('cliente'); setError(null); }}
+                style={{ transition: "0.3s" }}
+            >
+                Estudiantes
+            </button>
+            <button 
+                className={`btn rounded-pill w-50 fw-bold transition-all ${view === 'admin' ? 'btn-warning text-dark shadow' : 'text-white'}`}
+                onClick={() => { setView('admin'); setError(null); }}
+                style={{ transition: "0.3s" }}
+            >
+                Admin View
+            </button>
+        </div>
 
-          <button
-            className="btn btn-primary w-100 btn-lg d-flex justify-content-center align-items-center gap-2"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? "Conectando..." : <><i className="bi bi-box-arrow-in-right"></i> Iniciar sesión</>}
-          </button>
+        {/* ALERTA DE ERROR */}
+        {error && (
+            <div className="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
+                ❌ {error}
+            </div>
+        )}
+
+        {/* FORMULARIO */}
+        <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+            
+            {view === "cliente" ? (
+                // --- VISTA ESTUDIANTE ---
+                <>
+                    <div className="input-group input-group-lg">
+                        <span className="input-group-text bg-dark border-secondary text-secondary"><FaUser /></span>
+                        <input 
+                            type="email" 
+                            className="form-control bg-dark border-secondary text-white placeholder-gray"
+                            placeholder="Correo Institucional"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="input-group input-group-lg">
+                        <span className="input-group-text bg-dark border-secondary text-secondary"><FaLock /></span>
+                        <input 
+                            type="password" 
+                            className="form-control bg-dark border-secondary text-white"
+                            placeholder="Contraseña"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                </>
+            ) : (
+                // --- VISTA ADMIN ---
+                <>
+                    <div className="input-group input-group-lg">
+                        <span className="input-group-text bg-dark border-secondary text-warning"><FaIdCard /></span>
+                        <input 
+                            type="text" 
+                            className="form-control bg-dark border-secondary text-white"
+                            placeholder="ID de Administrador"
+                            value={adminId}
+                            onChange={(e) => setAdminId(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="input-group input-group-lg">
+                        <span className="input-group-text bg-dark border-secondary text-warning"><FaUserShield /></span>
+                        <input 
+                            type="text" 
+                            className="form-control bg-dark border-secondary text-white"
+                            placeholder="Nombre de Usuario"
+                            value={adminName}
+                            onChange={(e) => setAdminName(e.target.value)}
+                            required
+                        />
+                    </div>
+                </>
+            )}
+
+            <button 
+                type="submit" 
+                className={`btn btn-lg w-100 fw-bold mt-3 shadow ${view === 'cliente' ? 'btn-info text-white' : 'btn-warning text-dark'}`}
+                style={{ borderRadius: "10px" }}
+            >
+                <FaSignInAlt className="me-2" /> 
+                {view === 'cliente' ? 'Iniciar Sesión' : 'Acceder al Panel'}
+            </button>
+
         </form>
 
-        <p className="text-center mt-4 text-white">
-          ¿No tienes cuenta?{" "}
-          <a href="/register" className="text-info fw-semibold">
-            Crear cuenta
-          </a>
-        </p>
-      </div>
+        {/* FOOTER */}
+        {view === "cliente" && (
+            <div className="text-center mt-4">
+                <span className="text-white-50">¿No tienes cuenta? </span>
+                <button 
+                    onClick={() => navigate('/register')} // Asumiendo que tienes una ruta /register
+                    className="btn btn-link text-info text-decoration-none fw-bold p-0"
+                >
+                    <FaUserPlus className="me-1"/> Regístrate aquí
+                </button>
+            </div>
+        )}
 
-      <style jsx>{`
-        .glass-card {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(12px);
-          border-radius: 1rem;
-        }
-        .btn-primary {
-          transition: all 0.3s ease;
-        }
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          background-color: #0d6efdcc;
-        }
-        .form-control:focus {
-          border-color: #0d6efd;
-          box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-        }
-      `}</style>
+      </div>
     </div>
   );
 }
