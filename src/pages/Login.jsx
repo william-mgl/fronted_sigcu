@@ -7,24 +7,26 @@ const API_URL = import.meta.env.VITE_API_URL;
 export default function Login() {
   const navigate = useNavigate();
   
-  // Estado para el switch: 'cliente' o 'admin'
-  const [view, setView] = useState("cliente"); 
+  // 'estudiante' coincide con el rol por defecto en tu Register
+  const [view, setView] = useState("estudiante"); 
   
-  // Estados del formulario
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminId, setAdminId] = useState("");
   const [adminName, setAdminName] = useState("");
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
-    // Definir URL y Datos según quién intenta entrar
-    const endpoint = view === "cliente" ? "/login" : "/admin-login";
+    // Ajustamos los endpoints para que sean consistentes
+    // Normalmente el login es uno solo, pero si tu backend separa rutas:
+    const endpoint = view === "estudiante" ? "/api/auth/login" : "/api/auth/admin-login";
     
-    const bodyData = view === "cliente" 
+    const bodyData = view === "estudiante" 
         ? { email, password } 
         : { adminId, adminName };
 
@@ -38,104 +40,95 @@ export default function Login() {
       const data = await res.json();
 
       if (res.ok) {
-        // Guardar token y usuario
+        // Guardar token y datos de usuario
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // Redirigir según el rol
-        if (view === "admin" || data.user.rol === "admin_comedor") {
+        // Redirigir según el rol devuelto por el servidor
+        if (data.user.rol === "admin" || data.user.rol === "admin_comedor") {
             navigate("/admin-dashboard");
         } else {
             navigate("/dashboard");
         }
       } else {
-        setError(data.error || "Error al iniciar sesión");
+        // Mostrar el mensaje exacto que viene del servidor
+        setError(data.error || data.message || "Credenciales incorrectas");
       }
     } catch (err) {
-      console.error(err);
-      setError("Error de conexión con el servidor");
+      console.error("Error connection:", err);
+      setError("No se pudo conectar con el servidor. Verifica tu conexión.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="d-flex align-items-center justify-content-center vh-100"
          style={{ 
-             background: "radial-gradient(circle at center, #1a2a6c, #b21f1f, #fdbb2d)", // Opción A: Colorido
-             // Opción B (Más serio): background: "linear-gradient(135deg, #004e92, #000428)", 
              background: "linear-gradient(135deg, #000428, #004e92)", 
              overflow: "hidden"
          }}>
       
-      {/* CÍRCULOS DECORATIVOS DE FONDO (Efecto moderno) */}
-      <div style={{ position: "absolute", top: "10%", left: "20%", width: "300px", height: "300px", background: "rgba(255,255,255,0.05)", borderRadius: "50%", filter: "blur(50px)" }}></div>
-      <div style={{ position: "absolute", bottom: "10%", right: "20%", width: "200px", height: "200px", background: "rgba(0,128,255,0.1)", borderRadius: "50%", filter: "blur(40px)" }}></div>
-
       {/* TARJETA GLASSMORPHISM */}
       <div className="card border-0 shadow-lg p-4"
            style={{
                width: "100%",
                maxWidth: "450px",
-               background: "rgba(255, 255, 255, 0.1)", // Transparencia
-               backdropFilter: "blur(16px)", // Efecto borroso
+               background: "rgba(255, 255, 255, 0.1)",
+               backdropFilter: "blur(16px)",
                borderRadius: "20px",
                border: "1px solid rgba(255, 255, 255, 0.2)"
            }}>
         
         <div className="text-center text-white mb-4">
             <div className="mb-3">
-                {view === "cliente" ? (
-                    <FaUniversity size={50} className="text-info animate__animated animate__fadeIn" />
+                {view === "estudiante" ? (
+                    <FaUniversity size={50} className="text-info" />
                 ) : (
-                    <FaUserShield size={50} className="text-warning animate__animated animate__fadeIn" />
+                    <FaUserShield size={50} className="text-warning" />
                 )}
             </div>
             <h2 className="fw-bold">Bienvenido</h2>
-            <p className="text-white-50 small">Sistema de Comedores Universitarios</p>
+            <p className="text-white-50 small">Sistema de Comedores UTM</p>
         </div>
 
-        {/* SWITCH TIPO PESTAÑAS */}
+        {/* SWITCH DE VISTA */}
         <div className="d-flex justify-content-center mb-4 bg-dark bg-opacity-50 rounded-pill p-1">
             <button 
-                className={`btn rounded-pill w-50 fw-bold transition-all ${view === 'cliente' ? 'btn-primary shadow' : 'text-white'}`}
-                onClick={() => { setView('cliente'); setError(null); }}
-                style={{ transition: "0.3s" }}
+                className={`btn rounded-pill w-50 fw-bold ${view === 'estudiante' ? 'btn-primary shadow' : 'text-white'}`}
+                onClick={() => { setView('estudiante'); setError(null); }}
             >
                 Estudiantes
             </button>
             <button 
-                className={`btn rounded-pill w-50 fw-bold transition-all ${view === 'admin' ? 'btn-warning text-dark shadow' : 'text-white'}`}
+                className={`btn rounded-pill w-50 fw-bold ${view === 'admin' ? 'btn-warning text-dark shadow' : 'text-white'}`}
                 onClick={() => { setView('admin'); setError(null); }}
-                style={{ transition: "0.3s" }}
             >
-                Admin View
+                Administrador
             </button>
         </div>
 
-        {/* ALERTA DE ERROR */}
         {error && (
-            <div className="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
-                ❌ {error}
+            <div className="alert alert-danger py-2 small" role="alert">
+                {error}
             </div>
         )}
 
-        {/* FORMULARIO */}
         <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
-            
-            {view === "cliente" ? (
-                // --- VISTA ESTUDIANTE ---
+            {view === "estudiante" ? (
                 <>
-                    <div className="input-group input-group-lg">
+                    <div className="input-group">
                         <span className="input-group-text bg-dark border-secondary text-secondary"><FaUser /></span>
                         <input 
                             type="email" 
-                            className="form-control bg-dark border-secondary text-white placeholder-gray"
+                            className="form-control bg-dark border-secondary text-white"
                             placeholder="Correo Institucional"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
                     </div>
-                    <div className="input-group input-group-lg">
+                    <div className="input-group">
                         <span className="input-group-text bg-dark border-secondary text-secondary"><FaLock /></span>
                         <input 
                             type="password" 
@@ -148,9 +141,8 @@ export default function Login() {
                     </div>
                 </>
             ) : (
-                // --- VISTA ADMIN ---
                 <>
-                    <div className="input-group input-group-lg">
+                    <div className="input-group">
                         <span className="input-group-text bg-dark border-secondary text-warning"><FaIdCard /></span>
                         <input 
                             type="text" 
@@ -161,7 +153,7 @@ export default function Login() {
                             required
                         />
                     </div>
-                    <div className="input-group input-group-lg">
+                    <div className="input-group">
                         <span className="input-group-text bg-dark border-secondary text-warning"><FaUserShield /></span>
                         <input 
                             type="text" 
@@ -177,28 +169,25 @@ export default function Login() {
 
             <button 
                 type="submit" 
-                className={`btn btn-lg w-100 fw-bold mt-3 shadow ${view === 'cliente' ? 'btn-info text-white' : 'btn-warning text-dark'}`}
-                style={{ borderRadius: "10px" }}
+                disabled={loading}
+                className={`btn btn-lg w-100 fw-bold mt-2 ${view === 'estudiante' ? 'btn-info text-white' : 'btn-warning text-dark'}`}
             >
                 <FaSignInAlt className="me-2" /> 
-                {view === 'cliente' ? 'Iniciar Sesión' : 'Acceder al Panel'}
+                {loading ? "Cargando..." : (view === 'estudiante' ? 'Iniciar Sesión' : 'Acceder')}
             </button>
-
         </form>
 
-        {/* FOOTER */}
-        {view === "cliente" && (
+        {view === "estudiante" && (
             <div className="text-center mt-4">
-                <span className="text-white-50">¿No tienes cuenta? </span>
+                <span className="text-white-50 small">¿No tienes cuenta? </span>
                 <button 
-                    onClick={() => navigate('/register')} // Asumiendo que tienes una ruta /register
-                    className="btn btn-link text-info text-decoration-none fw-bold p-0"
+                    onClick={() => navigate('/register')} 
+                    className="btn btn-link text-info text-decoration-none fw-bold p-0 small"
                 >
-                    <FaUserPlus className="me-1"/> Regístrate aquí
+                    Regístrate aquí
                 </button>
             </div>
         )}
-
       </div>
     </div>
   );
