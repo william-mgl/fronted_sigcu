@@ -5,33 +5,35 @@ import { FaUtensils, FaArrowLeft, FaMapMarkerAlt, FaClock, FaStoreSlash, FaDoorO
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Comedores() {
-  const { id } = useParams(); // Obtener el ID de la URL
+  const { id } = useParams(); 
   const navigate = useNavigate();
   const [comedores, setComedores] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Si el ID es undefined, no hacemos la petición para evitar errores
     if (!id) return;
 
-    fetch(`${API_URL}/comedores/facultad/${id}`)
+    const token = localStorage.getItem("token");
+
+    // Agregamos /api/ a la ruta para que coincida con el backend
+    fetch(`${API_URL}/api/comedores/facultad/${id}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    })
       .then(res => {
-          if (!res.ok) throw new Error("Error al cargar");
+          if (!res.ok) throw new Error("Error al cargar comedores");
           return res.json();
       })
       .then(data => {
-        // SOLUCIÓN AL ERROR: Verificamos si 'data' es realmente un Array
-        if (Array.isArray(data)) {
-            setComedores(data);
-        } else {
-            console.error("El servidor no devolvió una lista:", data);
-            setComedores([]); // Evitamos que explote el .map
-        }
+        // Nos aseguramos de que sea un array para evitar errores de .map()
+        setComedores(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
-        console.error(err);
-        setComedores([]); // En caso de error, lista vacía
+        console.error("Fetch Error:", err);
+        setComedores([]); 
         setLoading(false);
       });
   }, [id]);
@@ -46,14 +48,13 @@ export default function Comedores() {
 
       {/* FONDO AMBIENTAL */}
       <div style={{ position: "absolute", top: "10%", left: "-10%", width: "400px", height: "400px", background: "rgba(0, 255, 127, 0.05)", borderRadius: "50%", filter: "blur(100px)", zIndex: 0 }}></div>
-      <div style={{ position: "absolute", bottom: "10%", right: "-10%", width: "400px", height: "400px", background: "rgba(255, 0, 128, 0.05)", borderRadius: "50%", filter: "blur(100px)", zIndex: 0 }}></div>
 
       {/* HEADER */}
       <div className="container pt-5 pb-3" style={{ zIndex: 1 }}>
         <button 
-            className="btn btn-outline-light rounded-pill px-4 d-flex align-items-center gap-2 mb-4 hover-scale"
+            className="btn btn-outline-light rounded-pill px-4 d-flex align-items-center gap-2 mb-4"
             onClick={() => navigate('/dashboard')}
-            style={{ backdropFilter: "blur(5px)" }}
+            style={{ backdropFilter: "blur(5px)", transition: "0.3s" }}
         >
             <FaArrowLeft /> Volver al Dashboard
         </button>
@@ -74,14 +75,13 @@ export default function Comedores() {
                 <p>Buscando lugares para comer...</p>
             </div>
         ) : comedores.length === 0 ? (
-            <div className="text-center mt-5 p-5 rounded-4 shadow-lg" 
-                 style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(10px)" }}>
+            <div className="text-center mt-5 p-5 rounded-4" 
+                 style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)" }}>
                 <FaStoreSlash size={60} className="text-secondary mb-3" />
                 <h4>No hay comedores registrados aquí</h4>
-                <p className="text-white-50">Intenta en otra facultad.</p>
+                <p className="text-white-50">Intenta buscar en otra facultad o vuelve más tarde.</p>
             </div>
         ) : (
-            // AQUI OCURRÍA EL ERROR ANTES
             comedores.map(c => (
                 <div 
                     key={c.id} 
@@ -92,8 +92,8 @@ export default function Comedores() {
                         backdropFilter: "blur(16px)",
                         borderRadius: "20px",
                         border: "1px solid rgba(255, 255, 255, 0.1)",
-                        transition: "transform 0.3s, background 0.3s",
-                        cursor: c.abierto ? "pointer" : "default"
+                        transition: "all 0.3s ease",
+                        cursor: c.abierto ? "pointer" : "not-allowed"
                     }}
                     onMouseEnter={(e) => c.abierto && (e.currentTarget.style.transform = "translateY(-10px)")}
                     onMouseLeave={(e) => c.abierto && (e.currentTarget.style.transform = "translateY(0)")}
@@ -105,14 +105,14 @@ export default function Comedores() {
                         </div>
                         <h4 className="fw-bold mb-1">{c.nombre}</h4>
                         <div className="text-white-50 small mb-3 d-flex align-items-center gap-1">
-                            <FaMapMarkerAlt /> {c.ubicacion}
+                            <FaMapMarkerAlt /> {c.ubicacion || "Ubicación no disponible"}
                         </div>
                         <p className="small opacity-75 mb-4" style={{ minHeight: "40px" }}>
-                            {c.descripcion || "Menús variados para estudiantes."}
+                            {c.descripcion || "Disfruta de la mejor alimentación universitaria."}
                         </p>
                         <div className="mt-auto w-100">
                             {c.abierto ? (
-                                <button className="btn btn-info w-100 rounded-pill fw-bold text-white shadow-sm">
+                                <button className="btn btn-info w-100 rounded-pill fw-bold text-white shadow-sm border-0">
                                     <FaUtensils className="me-2" /> VER MENÚ
                                 </button>
                             ) : (
@@ -128,7 +128,7 @@ export default function Comedores() {
       </div>
 
       <footer className="mt-auto py-3 text-center text-white-50 small">
-        © 2025 SIGCU - Sistema Inteligente
+        © 2026 Universidad Técnica de Manabí - Comedor Inteligente
       </footer>
     </div>
   );
