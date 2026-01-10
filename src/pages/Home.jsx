@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-// 1. IMPORTANTE: Importamos Link para la navegación interna sin recargar
-import { Link } from "react-router-dom"; 
+import { Link, useNavigate } from "react-router-dom"; 
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -12,11 +12,9 @@ export default function Home() {
     }
   }, []);
 
-  // Función para cerrar sesión sin recargar la página bruscamente
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    setUser(null); // Actualizamos el estado para que la vista cambie al instante
+    localStorage.clear(); // Limpia token y user de una vez
+    setUser(null);
   };
 
   return (
@@ -26,7 +24,7 @@ export default function Home() {
         background: "linear-gradient(135deg, #004e92, #000428)",
       }}
     >
-      <div className="text-center p-5">
+      <div className="text-center p-5 animate__animated animate__fadeIn">
         <h1 className="fw-bold display-4 mb-3">
           <i className="bi bi-mortarboard-fill text-warning me-3"></i>
           Sistema de Comida Universitaria
@@ -34,7 +32,7 @@ export default function Home() {
 
         <h3 className="fw-light mb-4">Universidad Técnica de Manabí</h3>
 
-        <p className="lead mb-5 opacity-75">
+        <p className="lead mb-5 opacity-75 mx-auto" style={{ maxWidth: "700px" }}>
           Consulta el menú del día, reserva tu comida y descubre el valor nutricional,
           todo desde una plataforma rápida y moderna.
         </p>
@@ -42,10 +40,9 @@ export default function Home() {
         <div className="d-flex justify-content-center gap-3">
           {!user ? (
             <>
-              {/* 2. CAMBIO CLAVE: Usamos Link en lugar de <a> */}
               <Link 
                 to="/login" 
-                className="btn btn-warning btn-lg px-4 fw-semibold rounded-pill"
+                className="btn btn-warning btn-lg px-4 fw-semibold rounded-pill shadow"
               >
                 <i className="bi bi-box-arrow-in-right me-2"></i>
                 Iniciar sesión
@@ -61,13 +58,20 @@ export default function Home() {
             </>
           ) : (
             <>
-              <span className="btn btn-success btn-lg px-4 fw-semibold rounded-pill disabled">
-                Bienvenido, {user.nombre}
-              </span>
+              {/* Si ya está logueado, le permitimos ir a su panel según su rol */}
+              <button 
+                onClick={() => navigate(user.rol === 'admin_comedor' ? "/admin-dashboard" : "/dashboard")}
+                className="btn btn-info btn-lg px-4 fw-semibold rounded-pill text-white shadow"
+              >
+                <i className="bi bi-speedometer2 me-2"></i>
+                Ir a mi Panel
+              </button>
+              
               <button
                 onClick={handleLogout}
-                className="btn btn-outline-light btn-lg px-4 fw-semibold rounded-pill"
+                className="btn btn-outline-danger btn-lg px-4 fw-semibold rounded-pill"
               >
+                <i className="bi bi-power me-2"></i>
                 Cerrar sesión
               </button>
             </>
@@ -75,7 +79,7 @@ export default function Home() {
         </div>
 
         <footer className="mt-5 opacity-50">
-          <small>© 2025 Universidad Técnica de Manabí – Sistema Comedor Inteligente</small>
+          <small>© 2026 Universidad Técnica de Manabí – Sistema Comedor Inteligente</small>
         </footer>
       </div>
     </div>

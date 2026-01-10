@@ -11,12 +11,11 @@ export default function Dashboard() {
   const [historial, setHistorial] = useState([]);
   const [saldo, setSaldo] = useState(0);
 
-  // 1. Cargar usuario
+  // 1. Cargar usuario inicial
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+      setUser(JSON.parse(storedUser));
     } else {
       navigate("/login");
     }
@@ -24,7 +23,7 @@ export default function Dashboard() {
 
   // 2. Obtener datos (Facultades, Historial, Saldo)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !user.id) return;
 
     const token = localStorage.getItem("token");
     const authHeaders = {
@@ -32,28 +31,39 @@ export default function Dashboard() {
       "Authorization": `Bearer ${token}` 
     };
 
-    // A) Cargar Facultades
-    fetch(`${API_URL}/facultades`)
+    // A) Cargar Facultades - Usando el prefijo /api
+    fetch(`${API_URL}/api/facultades`, { headers: authHeaders })
       .then(res => res.ok ? res.json() : [])
       .then(data => setFacultades(data))
       .catch(err => console.error("Error facultades:", err)); 
 
-    // B) Cargar Historial
-    if (user.id) {
-        fetch(`${API_URL}/reservas/usuario/${user.id}`, { headers: authHeaders })
-        .then(res => res.ok ? res.json() : [])
-        .then(data => setHistorial(Array.isArray(data) ? data : []))
-        .catch(err => console.error("Error historial:", err)); 
+    // B) Cargar Historial - Coincidiendo con tu esquema de DB
+    fetch(`${API_URL}/api/reservas/usuario/${user.id}`, { headers: authHeaders })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setHistorial(Array.isArray(data) ? data : []))
+      .catch(err => console.error("Error historial:", err)); 
 
-        // C) Obtener Saldo actualizado
-        fetch(`${API_URL}/usuarios/${user.id}`, { headers: authHeaders })
-        .then(res => res.ok ? res.json() : { saldo: 0 })
-        .then(data => setSaldo(Number(data.saldo) || 0))
-        .catch(err => console.error("Error saldo:", err));
-    }
+    // C) Obtener Saldo actualizado directamente del perfil del usuario
+    fetch(`${API_URL}/api/usuarios/${user.id}`, { headers: authHeaders })
+      .then(res => res.ok ? res.json() : { saldo: 0 })
+      .then(data => setSaldo(Number(data.saldo) || 0))
+      .catch(err => console.error("Error saldo:", err));
+    
   }, [user]);
 
-  if (!user) return <div className="vh-100 d-flex align-items-center justify-content-center bg-dark text-white">Cargando Sistema...</div>;
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
+
+  if (!user) {
+    return (
+      <div className="vh-100 d-flex align-items-center justify-content-center bg-dark text-white">
+        <div className="spinner-border text-info me-2" role="status"></div>
+        Cargando Sistema...
+      </div>
+    );
+  }
 
   return (
     <div className="d-flex flex-column min-vh-100 text-white"
@@ -70,16 +80,14 @@ export default function Dashboard() {
       <nav className="navbar navbar-expand-lg px-4 py-3 shadow-sm" 
            style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(10px)", zIndex: 10, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <div className="container-fluid">
-            {/* Logo / Usuario */}
             <div className="d-flex align-items-center gap-3">
                 <FaUserCircle size={40} className="text-info" />
                 <div>
                     <h5 className="m-0 fw-bold text-white">Hola, {user.nombre}</h5>
-                    <small className="text-white-50">{user.email}</small>
+                    <small className="text-white-50">{user.rol === 'estudiante' ? 'Estudiante UTM' : user.rol}</small>
                 </div>
             </div>
 
-            {/* Saldo y Logout */}
             <div className="d-flex align-items-center gap-3">
                 <div className="d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
                      style={{ background: "linear-gradient(90deg, #11998e, #38ef7d)" }}>
@@ -88,8 +96,7 @@ export default function Dashboard() {
                 </div>
                 <button
                     className="btn btn-outline-light btn-sm d-flex align-items-center gap-2 px-3 rounded-pill"
-                    onClick={() => { localStorage.clear(); navigate("/login"); }}
-                    style={{ transition: "0.3s" }}
+                    onClick={handleLogout}
                 >
                     <FaSignOutAlt /> Salir
                 </button>
@@ -109,19 +116,17 @@ export default function Dashboard() {
                     <h4 className="fw-bold text-white d-flex align-items-center gap-2">
                         <FaUniversity className="text-warning" /> Comedores Disponibles
                     </h4>
-                    <p className="text-white-50 small">Selecciona una facultad para ver su menú</p>
+                    <p className="text-white-50 small">Selecciona una facultad para ver su menú diario</p>
                 </div>
 
                 <div className="card-body p-4 pt-0">
                     <div className="list-group list-group-flush gap-2">
-                        {facultades.map(f => (
+                        {facultades.length > 0 ? facultades.map(f => (
                             <button
                                 key={f.id}
                                 className="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 rounded-3 border-0 text-white"
                                 onClick={() => navigate(`/comedores/${f.id}`)}
                                 style={{ background: "rgba(0,0,0,0.3)", transition: "0.2s" }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(0, 168, 255, 0.2)"}
-                                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.3)"}
                             >
                                 <div className="d-flex align-items-center gap-3">
                                     <div className="bg-primary bg-opacity-25 p-2 rounded-circle text-info">
@@ -131,7 +136,7 @@ export default function Dashboard() {
                                 </div>
                                 <FaSearch className="text-white-50" />
                             </button>
-                        ))}
+                        )) : <p className="text-center opacity-50 py-4">No se encontraron facultades.</p>}
                     </div>
                 </div>
             </div>
@@ -146,7 +151,7 @@ export default function Dashboard() {
                     <h4 className="fw-bold text-white d-flex align-items-center gap-2">
                         <FaHistory className="text-info" /> Tus Pedidos
                     </h4>
-                    <p className="text-white-50 small">Últimas transacciones realizadas</p>
+                    <p className="text-white-50 small">Últimas transacciones</p>
                 </div>
 
                 <div className="card-body p-3 overflow-auto" style={{ maxHeight: "500px" }}>
@@ -159,19 +164,19 @@ export default function Dashboard() {
                         <div className="d-flex flex-column gap-3">
                             {historial.map(r => (
                                 <div key={r.id} className="d-flex align-items-center justify-content-between p-3 rounded-3"
-                                     style={{ background: "rgba(255,255,255,0.05)", borderLeft: "4px solid #38ef7d" }}>
+                                     style={{ background: "rgba(255,255,255,0.05)", borderLeft: `4px solid ${r.estado === 'retirado' ? '#38ef7d' : '#fdbb2d'}` }}>
                                     
                                     <div>
-                                        <h6 className="m-0 fw-bold text-white">{r.nombre || "Plato desconocido"}</h6>
+                                        <h6 className="m-0 fw-bold text-white" style={{fontSize: '0.9rem'}}>{r.plato_nombre || "Reserva de Menú"}</h6>
                                         <small className="text-white-50 d-flex align-items-center gap-1">
                                             <FaClock size={10} /> {new Date(r.fecha_reserva).toLocaleDateString()}
                                         </small>
                                     </div>
 
                                     <div className="text-end">
-                                        <span className="d-block fw-bold text-success">${r.precio}</span>
-                                        <span className={`badge rounded-pill ${r.estado === 'pendiente' ? 'bg-warning text-dark' : 'bg-success'}`}>
-                                            {r.estado === 'pendiente' ? <FaClock /> : <FaCheckCircle />} {r.estado}
+                                        <span className="d-block fw-bold text-success">${Number(r.precio_total || 0).toFixed(2)}</span>
+                                        <span className={`badge rounded-pill ${r.estado === 'pendiente' ? 'bg-warning text-dark' : 'bg-success'}`} style={{fontSize: '0.7rem'}}>
+                                            {r.estado}
                                         </span>
                                     </div>
                                 </div>
@@ -185,7 +190,7 @@ export default function Dashboard() {
       </main>
       
       <footer className="mt-auto p-3 text-center text-white-50 w-100" style={{ fontSize: "0.8rem", zIndex: 1 }}>
-        © 2025 Universidad Técnica de Manabí - Sistema Inteligente
+        © 2026 Universidad Técnica de Manabí - Comedores Universitarios
       </footer>
     </div>
   );
