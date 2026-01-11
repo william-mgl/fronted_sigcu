@@ -1,14 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaUser, FaLock, FaUniversity, FaUserShield, FaSignInAlt } from "react-icons/fa";
+import { FaUser, FaLock, FaUniversity, FaUserShield, FaIdCard, FaSignInAlt } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Login() {
   const navigate = useNavigate();
   const [view, setView] = useState("estudiante"); 
+  
+  // Estados para Estudiante
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Estados para Administrador (Lo que tú pediste)
+  const [adminId, setAdminId] = useState("");
+  const [adminName, setAdminName] = useState("");
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -17,21 +24,21 @@ export default function Login() {
     setError(null);
     setLoading(true);
 
-    // UNIFICADO: Usamos la ruta que confirmamos que funciona
+    // IMPORTANTE: Usamos la ruta general de login para evitar el 404
     const endpoint = "/api/auth/login"; 
+    
+    // Si es estudiante mandamos email/pass. 
+    // Si es admin, mandamos adminId y adminName como identificadores.
+    const bodyData = view === "estudiante" 
+        ? { email, password } 
+        : { adminId, adminName, is_admin: true }; 
 
     try {
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(bodyData),
       });
-
-      // Evitar el error de "Unexpected token <" validando si es JSON
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("El servidor no respondió correctamente. Contacta al soporte.");
-      }
 
       const data = await res.json();
 
@@ -39,18 +46,16 @@ export default function Login() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // Redirigir según el rol real guardado en la Base de Datos
         if (data.user.rol === "admin") {
-          navigate("/admin-panel");
+            navigate("/admin-panel");
         } else {
-          navigate("/dashboard");
+            navigate("/dashboard");
         }
       } else {
         setError(data.error || "Credenciales incorrectas");
       }
     } catch (err) {
-      console.error("Error:", err);
-      setError(err.message || "Error de conexión con el servidor.");
+      setError("Error de conexión con el servidor.");
     } finally {
       setLoading(false);
     }
@@ -62,9 +67,9 @@ export default function Login() {
       
       <div className="card border-0 shadow-lg p-4"
            style={{
-               width: "100%", maxWidth: "420px",
+               width: "100%", maxWidth: "450px",
                background: "rgba(255, 255, 255, 0.1)",
-               backdropFilter: "blur(15px)", borderRadius: "20px",
+               backdropFilter: "blur(16px)", borderRadius: "20px",
                border: "1px solid rgba(255, 255, 255, 0.2)"
            }}>
         
@@ -72,8 +77,8 @@ export default function Login() {
             <div className="mb-3">
                 {view === "estudiante" ? <FaUniversity size={50} className="text-info" /> : <FaUserShield size={50} className="text-warning" />}
             </div>
-            <h2 className="fw-bold">Acceso UTM</h2>
-            <p className="text-white-50 small">Inicia sesión como {view}</p>
+            <h2 className="fw-bold">UTM Comedor</h2>
+            <p className="text-white-50">Acceso {view === 'estudiante' ? 'Estudiantes' : 'Administrativo'}</p>
         </div>
 
         <div className="d-flex justify-content-center mb-4 bg-dark bg-opacity-50 rounded-pill p-1">
@@ -86,30 +91,39 @@ export default function Login() {
         {error && <div className="alert alert-danger py-2 small text-center">{error}</div>}
 
         <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
-            <div className="input-group">
-                <span className="input-group-text bg-dark border-secondary text-secondary"><FaUser /></span>
-                <input type="email" className="form-control bg-dark border-secondary text-white"
-                       placeholder="Correo Institucional" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-            <div className="input-group">
-                <span className="input-group-text bg-dark border-secondary text-secondary"><FaLock /></span>
-                <input type="password" className="form-control bg-dark border-secondary text-white"
-                       placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
+            {view === "estudiante" ? (
+                <>
+                    <div className="input-group">
+                        <span className="input-group-text bg-dark border-secondary text-secondary"><FaUser /></span>
+                        <input type="email" className="form-control bg-dark border-secondary text-white shadow-none"
+                               placeholder="Correo Institucional" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    </div>
+                    <div className="input-group">
+                        <span className="input-group-text bg-dark border-secondary text-secondary"><FaLock /></span>
+                        <input type="password" className="form-control bg-dark border-secondary text-white shadow-none"
+                               placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    </div>
+                </>
+            ) : (
+                <>
+                    <div className="input-group">
+                        <span className="input-group-text bg-dark border-secondary text-warning"><FaIdCard /></span>
+                        <input type="text" className="form-control bg-dark border-secondary text-white shadow-none"
+                               placeholder="ID de Administrador" value={adminId} onChange={(e) => setAdminId(e.target.value)} required />
+                    </div>
+                    <div className="input-group">
+                        <span className="input-group-text bg-dark border-secondary text-warning"><FaUserShield /></span>
+                        <input type="text" className="form-control bg-dark border-secondary text-white shadow-none"
+                               placeholder="Usuario Admin" value={adminName} onChange={(e) => setAdminName(e.target.value)} required />
+                    </div>
+                </>
+            )}
 
             <button type="submit" disabled={loading}
                     className={`btn btn-lg w-100 fw-bold mt-2 ${view === 'estudiante' ? 'btn-info text-white' : 'btn-warning text-dark'}`}>
-                {loading ? "Procesando..." : <><FaSignInAlt className="me-2" /> Entrar</>}
+                {loading ? "Cargando..." : <><FaSignInAlt className="me-2" /> Ingresar</>}
             </button>
         </form>
-
-        {view === "estudiante" && (
-            <div className="text-center mt-4">
-                <button onClick={() => navigate('/register')} className="btn btn-link text-info text-decoration-none small">
-                    ¿No tienes cuenta? Regístrate aquí
-                </button>
-            </div>
-        )}
       </div>
     </div>
   );
