@@ -1,41 +1,52 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FaUtensils, FaArrowLeft, FaMapMarkerAlt, FaClock, FaStoreSlash, FaDoorOpen } from "react-icons/fa";
+import { 
+  FaUtensils, FaArrowLeft, FaMapMarkerAlt, 
+  FaClock, FaStoreSlash, FaDoorOpen, FaSearch 
+} from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Comedores() {
-  const { id } = useParams(); 
+  const { id } = useParams(); // ID de la facultad que viene de la URL
   const navigate = useNavigate();
+  
   const [comedores, setComedores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!id) return;
 
-    const token = localStorage.getItem("token");
+    const fetchComedores = async () => {
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
-    // Agregamos /api/ a la ruta para que coincida con el backend
-    fetch(`${API_URL}/api/comedores/facultad/${id}`, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => {
-          if (!res.ok) throw new Error("Error al cargar comedores");
-          return res.json();
-      })
-      .then(data => {
-        // Nos aseguramos de que sea un array para evitar errores de .map()
+      try {
+        // La ruta debe coincidir con: router.get("/facultad/:facultadId"...)
+        const response = await fetch(`${API_URL}/api/comedores/facultad/${id}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudo obtener la lista de comedores");
+        }
+
+        const data = await response.json();
+        // Validamos que la data sea un array antes de guardarla
         setComedores(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error Fetch Comedores:", err);
+        setError(err.message);
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error("Fetch Error:", err);
-        setComedores([]); 
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchComedores();
   }, [id]);
 
   return (
@@ -43,92 +54,104 @@ export default function Comedores() {
          style={{ 
              background: "linear-gradient(135deg, #000428, #004e92)", 
              overflowY: "auto",
-             position: "relative"
+             position: "relative" 
          }}>
 
-      {/* FONDO AMBIENTAL */}
-      <div style={{ position: "absolute", top: "10%", left: "-10%", width: "400px", height: "400px", background: "rgba(0, 255, 127, 0.05)", borderRadius: "50%", filter: "blur(100px)", zIndex: 0 }}></div>
+      {/* EFECTO DE LUZ DE FONDO */}
+      <div style={{ position: "absolute", top: "10%", left: "-5%", width: "400px", height: "400px", background: "rgba(0, 255, 255, 0.05)", borderRadius: "50%", filter: "blur(100px)", zIndex: 0 }}></div>
 
-      {/* HEADER */}
-      <div className="container pt-5 pb-3" style={{ zIndex: 1 }}>
+      <div className="container pt-5 pb-4" style={{ zIndex: 1 }}>
         <button 
-            className="btn btn-outline-light rounded-pill px-4 d-flex align-items-center gap-2 mb-4"
+            className="btn btn-outline-light rounded-pill px-4 d-flex align-items-center gap-2 mb-4 shadow-sm"
             onClick={() => navigate('/dashboard')}
-            style={{ backdropFilter: "blur(5px)", transition: "0.3s" }}
         >
             <FaArrowLeft /> Volver al Dashboard
         </button>
         
-        <h2 className="fw-bold d-flex align-items-center gap-3">
-            <FaUtensils className="text-warning" /> 
-            Comedores de la Facultad
+        <h2 className="fw-bold d-flex align-items-center gap-3 animate__animated animate__fadeIn">
+            <FaUtensils className="text-info" /> 
+            Comedores Disponibles
         </h2>
-        <p className="text-white-50">Selecciona un local para ver su menú de hoy.</p>
+        <p className="text-white-50">Explora los puntos de alimentación de esta facultad.</p>
       </div>
 
-      {/* LISTA DE COMEDORES */}
-      <div className="container d-flex flex-wrap gap-4 pb-5 justify-content-center" style={{ zIndex: 1 }}>
-        
+      <div className="container pb-5" style={{ zIndex: 1 }}>
         {loading ? (
-            <div className="text-center mt-5 opacity-50">
-                <div className="spinner-border text-info mb-3" role="status"></div>
-                <p>Buscando lugares para comer...</p>
+            <div className="text-center mt-5 py-5">
+                <div className="spinner-border text-info mb-3" role="status" style={{width: "3rem", height: "3rem"}}></div>
+                <p className="fs-5 opacity-75">Buscando lugares para comer...</p>
+            </div>
+        ) : error ? (
+            <div className="alert alert-danger bg-danger bg-opacity-25 border-danger text-white text-center rounded-4 p-5">
+                <h4>Ocurrió un error</h4>
+                <p>{error}</p>
+                <button className="btn btn-light mt-3" onClick={() => window.location.reload()}>Reintentar</button>
             </div>
         ) : comedores.length === 0 ? (
-            <div className="text-center mt-5 p-5 rounded-4" 
-                 style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                <FaStoreSlash size={60} className="text-secondary mb-3" />
-                <h4>No hay comedores registrados aquí</h4>
-                <p className="text-white-50">Intenta buscar en otra facultad o vuelve más tarde.</p>
+            <div className="text-center mt-5 p-5 rounded-4 animate__animated animate__zoomIn" 
+                 style={{ background: "rgba(0,0,0,0.2)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <FaStoreSlash size={80} className="text-white-50 mb-4" />
+                <h3 className="fw-bold text-info">No hay comedores registrados</h3>
+                <p className="text-white-50 fs-5">Parece que esta facultad aún no tiene locales asignados en el sistema.</p>
+                <button className="btn btn-info rounded-pill mt-3 px-4 fw-bold" onClick={() => navigate('/dashboard')}>Explorar otras Facultades</button>
             </div>
         ) : (
-            comedores.map(c => (
-                <div 
-                    key={c.id} 
-                    className="card border-0 shadow-lg text-white"
-                    style={{ 
-                        width: "350px",
-                        background: "rgba(255, 255, 255, 0.1)", 
-                        backdropFilter: "blur(16px)",
-                        borderRadius: "20px",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        transition: "all 0.3s ease",
-                        cursor: c.abierto ? "pointer" : "not-allowed"
-                    }}
-                    onMouseEnter={(e) => c.abierto && (e.currentTarget.style.transform = "translateY(-10px)")}
-                    onMouseLeave={(e) => c.abierto && (e.currentTarget.style.transform = "translateY(0)")}
-                    onClick={() => c.abierto && navigate(`/comedor/${c.id}`)}
-                >
-                    <div className="card-body p-4 d-flex flex-column align-items-center text-center">
-                        <div className={`rounded-circle p-3 mb-3 shadow ${c.abierto ? 'bg-success' : 'bg-secondary'}`}>
-                            {c.abierto ? <FaDoorOpen size={30} /> : <FaStoreSlash size={30} />}
-                        </div>
-                        <h4 className="fw-bold mb-1">{c.nombre}</h4>
-                        <div className="text-white-50 small mb-3 d-flex align-items-center gap-1">
-                            <FaMapMarkerAlt /> {c.ubicacion || "Ubicación no disponible"}
-                        </div>
-                        <p className="small opacity-75 mb-4" style={{ minHeight: "40px" }}>
-                            {c.descripcion || "Disfruta de la mejor alimentación universitaria."}
-                        </p>
-                        <div className="mt-auto w-100">
-                            {c.abierto ? (
-                                <button className="btn btn-info w-100 rounded-pill fw-bold text-white shadow-sm border-0">
-                                    <FaUtensils className="me-2" /> VER MENÚ
-                                </button>
-                            ) : (
-                                <button className="btn btn-secondary w-100 rounded-pill fw-bold disabled" disabled>
-                                    <FaClock className="me-2" /> CERRADO
-                                </button>
-                            )}
+            <div className="row g-4 justify-content-center">
+                {comedores.map(c => (
+                    <div key={c.id} className="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+                        <div 
+                            className="card h-100 border-0 shadow-lg text-white"
+                            style={{ 
+                                background: "rgba(255, 255, 255, 0.08)", 
+                                backdropFilter: "blur(20px)",
+                                borderRadius: "25px",
+                                border: "1px solid rgba(255, 255, 255, 0.1)",
+                                transition: "all 0.3s ease",
+                                cursor: c.abierto ? "pointer" : "default"
+                            }}
+                            onMouseEnter={(e) => c.abierto && (e.currentTarget.style.transform = "scale(1.03)")}
+                            onMouseLeave={(e) => c.abierto && (e.currentTarget.style.transform = "scale(1)")}
+                            onClick={() => c.abierto && navigate(`/comedor/${c.id}`)}
+                        >
+                            <div className="card-body p-4 d-flex flex-column">
+                                <div className="d-flex justify-content-between align-items-start mb-3">
+                                    <div className={`p-3 rounded-4 shadow-sm ${c.abierto ? 'bg-info bg-opacity-25 text-info' : 'bg-secondary bg-opacity-25 text-white-50'}`}>
+                                        <FaDoorOpen size={28} />
+                                    </div>
+                                    <span className={`badge rounded-pill px-3 py-2 ${c.abierto ? 'bg-success' : 'bg-danger'}`}>
+                                        {c.abierto ? 'ABIERTO' : 'CERRADO'}
+                                    </span>
+                                </div>
+
+                                <h4 className="fw-bold mb-2">{c.nombre}</h4>
+                                
+                                <div className="d-flex align-items-center gap-2 text-white-50 small mb-3">
+                                    <FaMapMarkerAlt className="text-info" />
+                                    <span>{c.ubicacion || "Campus UTM"}</span>
+                                </div>
+
+                                <p className="small text-white-50 mb-4 flex-grow-1">
+                                    {c.descripcion || "Servicio de alimentación universitaria de calidad con menús balanceados."}
+                                </p>
+
+                                <div className="mt-auto">
+                                    <button 
+                                        className={`btn w-100 py-2 rounded-pill fw-bold shadow-sm transition-all ${c.abierto ? 'btn-info text-white' : 'btn-outline-secondary disabled'}`}
+                                        disabled={!c.abierto}
+                                    >
+                                        {c.abierto ? "VER MENÚ DE HOY" : "LOCAL CERRADO"}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))
+                ))}
+            </div>
         )}
       </div>
 
-      <footer className="mt-auto py-3 text-center text-white-50 small">
-        © 2026 Universidad Técnica de Manabí - Comedor Inteligente
+      <footer className="mt-auto py-4 text-center text-white-50 border-top border-white border-opacity-10 shadow-lg" style={{ background: "rgba(0,0,0,0.2)" }}>
+        <small>© 2026 Universidad Técnica de Manabí - SIGCU System</small>
       </footer>
     </div>
   );
