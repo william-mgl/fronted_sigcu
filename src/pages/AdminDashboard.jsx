@@ -1,46 +1,34 @@
 const handleLogin = async (e) => {
   e.preventDefault();
-  setMensaje(null);
+  
+  // PROBAMOS CON LA URL DIRECTA PARA DESCARTAR ERRORES DE VARIABLES
+  const URL_PRUEBA = "https://backend-sigcu-9khe.onrender.com/api/auth/login";
 
   try {
-    // 1. Cambiamos la URL a la ruta de login general
-    const res = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+    const res = await fetch(URL_PRUEBA, {
+      method: "POST", // El navegador dio error porque usó GET, aquí usamos POST
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
-        email: email, // Asegúrate de que coincida con lo que pide tu backend
+        email: email, 
         password: password 
       }),
     });
 
-    // Intentamos parsear la respuesta
     const data = await res.json();
 
     if (res.ok) {
-      // 2. VERIFICACIÓN DE ROL: Solo permitimos entrar si es admin
       if (data.user.rol === "admin") {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        
-        setMensaje({ type: "success", text: "Bienvenido, Administrador" });
-        
-        // Redirigimos al panel
-        setTimeout(() => navigate("/admin-panel"), 1500);
+        navigate("/admin-panel");
       } else {
-        // Si los datos son correctos pero no es admin
-        setMensaje({ 
-          type: "error", 
-          text: "❌ Acceso denegado: Se requieren permisos de administrador." 
-        });
+        alert("Acceso denegado: No eres administrador");
       }
     } else {
-      // Si el servidor responde con error (401, 400, etc.)
-      setMensaje({ type: "error", text: data.error || "Credenciales incorrectas" });
+      alert("Error: " + (data.error || "Credenciales inválidas"));
     }
   } catch (error) {
-    console.error("Error connection:", error);
-    setMensaje({ type: "error", text: "Error de conexión con el servidor" });
+    console.error("Error en la petición:", error);
+    alert("No se pudo conectar con el servidor. Revisa tu conexión.");
   }
 };
