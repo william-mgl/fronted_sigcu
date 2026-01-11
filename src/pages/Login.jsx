@@ -8,11 +8,8 @@ export default function Login() {
   const navigate = useNavigate();
   const [view, setView] = useState("estudiante"); 
   
-  // Estados para Estudiante
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Estados para Administrador (Lo que tú pediste)
   const [adminId, setAdminId] = useState("");
   const [adminName, setAdminName] = useState("");
 
@@ -24,11 +21,9 @@ export default function Login() {
     setError(null);
     setLoading(true);
 
-    // IMPORTANTE: Usamos la ruta general de login para evitar el 404
     const endpoint = "/api/auth/login"; 
     
-    // Si es estudiante mandamos email/pass. 
-    // Si es admin, mandamos adminId y adminName como identificadores.
+    // Enviamos los datos según la vista activa
     const bodyData = view === "estudiante" 
         ? { email, password } 
         : { adminId, adminName, is_admin: true }; 
@@ -46,7 +41,8 @@ export default function Login() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        if (data.user.rol === "admin") {
+        // CORRECCIÓN AQUÍ: Usamos el rol exacto de tu base de datos
+        if (data.user.rol === "admin_comedor") {
             navigate("/admin-panel");
         } else {
             navigate("/dashboard");
