@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom"; 
 import { FaUserShield, FaMoneyBillWave, FaSignOutAlt, FaUsers, FaCoins } from "react-icons/fa";
 
-// Apuntamos a /api
 const API_URL = import.meta.env.VITE_API_URL;
 
 function AdminPanel() {
@@ -10,178 +9,177 @@ function AdminPanel() {
   const [usuarios, setUsuarios] = useState([]);
   const [userId, setUserId] = useState("");
   const [monto, setMonto] = useState("");
-  const [mensaje, setMensaje] = useState(null); // Para mostrar alertas bonitas
+  const [mensaje, setMensaje] = useState(null);
 
   const token = localStorage.getItem("token"); 
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  // Cargar lista de usuarios
+  // 1. Cargar lista de usuarios (Solo estudiantes para recarga)
   const obtenerUsuarios = () => {
-    fetch(`${API_URL}/usuarios`, {
+    fetch(`${API_URL}/api/usuarios`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}` 
       }
     })
-      .then(res => {
-        if (!res.ok) throw new Error("Error al obtener usuarios");
-        return res.json();
-      })
+      .then(res => res.ok ? res.json() : [])
       .then(data => {
-        if (Array.isArray(data)) {
-            setUsuarios(data);
-        } else {
-            setUsuarios([]); 
-        }
+        // Filtramos para mostrar solo estudiantes si es necesario
+        setUsuarios(Array.isArray(data) ? data : []);
       })
-      .catch(err => console.error(err));
+      .catch(err => console.error("Error cargando usuarios:", err));
   };
 
   useEffect(() => {
-    if (!token) {
+    // Verificación de Seguridad: Token y Rol
+    if (!token || !user || user.rol !== 'admin') {
         navigate('/login');
         return;
     }
     obtenerUsuarios(); 
   }, [token, navigate]);
 
-  // Función de Recarga
+  // 2. Función de Recarga
   const recargar = async (e) => {
-    e.preventDefault(); // Evita recargas de página
+    e.preventDefault();
     if (!userId || !monto) {
-      setMensaje({ type: "error", text: "⚠️ Selecciona un usuario y un monto." });
+      setMensaje({ type: "error", text: "⚠️ Selecciona un usuario y un monto válido." });
       return;
     }
 
     try {
-      const res = await fetch(`${API_URL}/usuarios/saldo`, {
+      const res = await fetch(`${API_URL}/api/usuarios/saldo`, {
         method: "PUT",
         headers: { 
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}` 
         },
-        body: JSON.stringify({ id: userId, monto }) 
+        body: JSON.stringify({ 
+            id: userId, 
+            monto: Number(monto) // Aseguramos que sea número
+        }) 
       });
 
       const data = await res.json();
       
       if (res.ok) {
-        setMensaje({ type: "success", text: `✅ ${data.message}` });
+        setMensaje({ type: "success", text: `✅ Recarga exitosa: ${data.message || 'Saldo actualizado'}` });
         setMonto(""); 
-        obtenerUsuarios(); // Actualizar lista
+        setUserId(""); // Resetear selector
+        obtenerUsuarios(); // Refrescar lista con nuevos saldos
         
-        // Limpiar mensaje a los 3 segundos
-        setTimeout(() => setMensaje(null), 3000);
+        setTimeout(() => setMensaje(null), 3500);
       } else {
-        setMensaje({ type: "error", text: `❌ ${data.error || "Error al recargar"}` });
+        setMensaje({ type: "error", text: `❌ ${data.error || "No se pudo procesar"}` });
       }
       
     } catch (error) {
-      console.error(error);
-      setMensaje({ type: "error", text: "❌ Error de conexión con el servidor" });
+      setMensaje({ type: "error", text: "❌ Error de conexión" });
     }
   };
 
   return (
     <div className="d-flex flex-column min-vh-100 text-white"
-         style={{ background: "linear-gradient(135deg, #141E30, #243B55)" }}> {/* Fondo Dark Premium */}
+         style={{ background: "linear-gradient(135deg, #141E30, #243B55)" }}>
 
-      {/* HEADER */}
-      <nav className="navbar navbar-dark bg-dark bg-opacity-25 px-4 shadow-sm backdrop-blur">
+      {/* NAVBAR */}
+      <nav className="navbar navbar-dark bg-dark bg-opacity-50 px-4 shadow-sm" style={{ backdropFilter: "blur(10px)" }}>
         <div className="d-flex align-items-center gap-3">
             <FaUserShield size={28} className="text-warning" />
-            <h3 className="m-0 fw-bold">Panel de Control</h3>
+            <h4 className="m-0 fw-bold">Administración de Fondos</h4>
         </div>
         <button 
-            className="btn btn-outline-danger d-flex align-items-center gap-2"
-            onClick={() => {
-                localStorage.clear();
-                navigate('/login');
-            }}
+            className="btn btn-sm btn-outline-danger rounded-pill px-3 d-flex align-items-center gap-2"
+            onClick={() => { localStorage.clear(); navigate('/login'); }}
         >
-            <FaSignOutAlt /> Salir
+            <FaSignOutAlt /> Cerrar Sesión
         </button>
       </nav>
 
-      {/* CONTENIDO PRINCIPAL */}
-      <div className="container d-flex flex-column align-items-center justify-content-center flex-grow-1">
+      {/* CONTENIDO */}
+      <div className="container d-flex flex-column align-items-center justify-content-center flex-grow-1 py-5">
         
-        <div className="card shadow-lg p-4 border-0" 
+        
+
+        <div className="card shadow-lg p-4 border-0 animate__animated animate__fadeIn" 
              style={{ 
-                 maxWidth: "500px", 
+                 maxWidth: "550px", 
                  width: "100%", 
-                 background: "rgba(255, 255, 255, 0.1)", // Efecto cristal
-                 backdropFilter: "blur(10px)",
-                 borderRadius: "15px",
-                 border: "1px solid rgba(255,255,255,0.2)"
+                 background: "rgba(255, 255, 255, 0.05)", 
+                 backdropFilter: "blur(15px)",
+                 borderRadius: "25px",
+                 border: "1px solid rgba(255,255,255,0.1)"
              }}>
           
           <div className="text-center mb-4">
-            <div className="bg-success rounded-circle d-inline-flex p-3 mb-3 shadow">
-                <FaMoneyBillWave size={40} className="text-white" />
+            <div className="bg-success bg-opacity-25 rounded-circle d-inline-flex p-4 mb-3">
+                <FaMoneyBillWave size={50} className="text-success" />
             </div>
             <h2 className="fw-bold text-white">Bóveda Virtual</h2>
-            <p className="text-white-50">Gestiona los fondos de los estudiantes</p>
+            <p className="text-white-50">Ingresa el ID del estudiante y el monto a asignar</p>
           </div>
 
-          {/* ALERTA DE ESTADO */}
           {mensaje && (
-              <div className={`alert ${mensaje.type === 'error' ? 'alert-danger' : 'alert-success'} text-center animate__animated animate__fadeIn`}>
+              <div className={`alert ${mensaje.type === 'error' ? 'alert-danger' : 'alert-success'} border-0 shadow-sm text-center py-2`}>
                   {mensaje.text}
               </div>
           )}
 
           <form onSubmit={recargar}>
-            {/* SELECCIÓN DE USUARIO */}
             <div className="mb-3">
-                <label className="form-label text-white d-flex align-items-center gap-2">
-                    <FaUsers /> Seleccionar Estudiante:
+                <label className="form-label text-white-50 small d-flex align-items-center gap-2">
+                    <FaUsers /> LISTA DE ESTUDIANTES:
                 </label>
                 <select
-                    className="form-select form-select-lg bg-dark text-white border-secondary"
+                    className="form-select form-select-lg bg-dark text-white border-0 shadow-none"
+                    style={{ borderRadius: "12px" }}
                     onChange={e => setUserId(e.target.value)}
                     value={userId}
                 >
-                    <option value="">-- Buscar en la lista --</option>
+                    <option value="">-- Seleccionar usuario --</option>
                     {usuarios.map(u => (
                         <option key={u.id} value={u.id}>
-                            ID: {u.id} | {u.nombre} (Saldo: ${Number(u.saldo).toFixed(2)})
+                            {u.nombre} (ID: {u.id}) - Actual: ${Number(u.saldo).toFixed(2)}
                         </option>
                     ))}
                 </select>
             </div>
 
-            {/* INPUT MONTO */}
             <div className="mb-4">
-                <label className="form-label text-white d-flex align-items-center gap-2">
-                    <FaCoins /> Monto a Recargar ($):
+                <label className="form-label text-white-50 small d-flex align-items-center gap-2">
+                    <FaCoins /> MONTO A DEPOSITAR:
                 </label>
-                <div className="input-group">
-                    <span className="input-group-text bg-secondary text-white border-secondary">$</span>
+                <div className="input-group input-group-lg">
+                    <span className="input-group-text bg-dark border-0 text-success fw-bold">$</span>
                     <input
                         type="number"
-                        className="form-control form-control-lg bg-dark text-white border-secondary"
-                        placeholder="Ej: 50.00"
+                        className="form-control bg-dark text-white border-0 shadow-none"
+                        placeholder="0.00"
                         value={monto}
                         onChange={(e) => setMonto(e.target.value)}
-                        min="1"
+                        min="0.01"
+                        step="0.01"
+                        style={{ borderRadius: "0 12px 12px 0" }}
                     />
                 </div>
             </div>
 
-            {/* BOTÓN DE ACCIÓN */}
             <button 
                 type="submit" 
-                className="btn btn-success w-100 btn-lg fw-bold shadow-sm hover-effect"
+                className="btn btn-success w-100 btn-lg fw-bold rounded-pill py-3 shadow transition-all"
                 disabled={!userId || !monto}
+                style={{ letterSpacing: "1px" }}
             >
-                <FaMoneyBillWave className="me-2" /> PROCESAR RECARGA
+                EJECUTAR RECARGA
             </button>
           </form>
-
         </div>
         
-        <small className="mt-4 text-white-50">Sistema de Gestión Universitario - Módulo Admin</small>
+        <footer className="mt-5 text-center text-white-50 small">
+          © 2026 Universidad Técnica de Manabí <br /> 
+          <span className="opacity-50">Módulo de Transacciones Centralizadas</span>
+        </footer>
       </div>
     </div>
   );
