@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom"; 
-import { FaUserShield, FaMoneyBillWave, FaSignOutAlt, FaUsers, FaCoins, FaArrowLeft } from "react-icons/fa";
+import { FaUserShield, FaMoneyBillWave, FaSignOutAlt, FaUsers, FaCoins } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -16,21 +16,28 @@ export default function AdminDashboard() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const obtenerUsuarios = useCallback(async () => {
+    if (!token) return;
     try {
+      setLoading(true);
       const res = await fetch(`${API_URL}/api/usuarios`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
-      if (res.ok) setUsuarios(data);
+      
+      if (res.ok) {
+        setUsuarios(data);
+      } else {
+        console.error("Error del servidor:", data.error);
+      }
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Error de red:", err);
     } finally {
       setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
-    // PROTECCIÓN: Validamos contra 'admin_comedor'
+    // Validar acceso
     if (!token || user?.rol !== 'admin_comedor') {
       navigate('/login');
       return;
@@ -40,7 +47,6 @@ export default function AdminDashboard() {
 
   const recargar = async (e) => {
     e.preventDefault();
-    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/usuarios/saldo`, {
         method: "PUT",
@@ -51,68 +57,56 @@ export default function AdminDashboard() {
         body: JSON.stringify({ id: userId, monto: Number(monto) }) 
       });
 
+      const data = await res.json();
       if (res.ok) {
-        setMensaje({ type: "success", text: "✅ Recarga exitosa" });
+        setMensaje({ type: "success", text: `✅ Recarga de $${monto} exitosa para ${data.usuario}` });
         setMonto(""); 
         setUserId("");
-        obtenerUsuarios();
+        obtenerUsuarios(); // Actualizar lista
       } else {
-        setMensaje({ type: "error", text: "Error en la recarga" });
+        setMensaje({ type: "error", text: data.error });
       }
     } catch (error) {
-      setMensaje({ type: "error", text: "Error de servidor" });
-    } finally {
-      setLoading(false);
-      setTimeout(() => setMensaje(null), 3000);
+      setMensaje({ type: "error", text: "Error de conexión" });
     }
+    setTimeout(() => setMensaje(null), 4000);
   };
 
   return (
-    <div className="min-vh-100 text-white" style={{ background: "linear-gradient(135deg, #0f2027, #2c5364)" }}>
-      <nav className="navbar navbar-dark bg-dark px-4 shadow-lg">
-        <div className="d-flex align-items-center gap-2">
-          <FaUserShield className="text-warning" size={24} />
-          <h5 className="m-0 fw-bold">ADMIN PANAL - SIGCU</h5>
-        </div>
-        <div className="d-flex gap-2">
-          <button className="btn btn-outline-light btn-sm rounded-pill" onClick={() => navigate('/dashboard')}>
-            <FaArrowLeft /> Dashboard
-          </button>
-          <button className="btn btn-danger btn-sm rounded-pill" onClick={() => { localStorage.clear(); navigate('/login'); }}>
-            <FaSignOutAlt />
-          </button>
-        </div>
+    <div className="min-vh-100 bg-dark text-white">
+      <nav className="navbar navbar-dark bg-black px-4 shadow">
+        <span className="navbar-brand mb-0 h1"><FaUserShield className="text-warning" /> SIGCU ADMIN</span>
+        <button className="btn btn-outline-danger btn-sm" onClick={() => { localStorage.clear(); navigate('/login'); }}>
+          <FaSignOutAlt /> Salir
+        </button>
       </nav>
 
-      <div className="container py-5">
-        <div className="row justify-content-center">
-          <div className="col-md-6">
-            <div className="card text-white p-4 shadow-lg border-0" 
-                 style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(10px)", borderRadius: "20px" }}>
-              <h4 className="text-center mb-4"><FaMoneyBillWave className="text-success" /> Recargar Saldo Estudiante</h4>
-              
-              {mensaje && <div className={`alert ${mensaje.type === 'error' ? 'alert-danger' : 'alert-success'} text-center`}>{mensaje.text}</div>}
+      <div className="container py-5 d-flex justify-content-center">
+        <div className="card bg-secondary bg-opacity-10 p-4 border-secondary shadow-lg" style={{ width: "100%", maxWidth: "500px", borderRadius: "20px" }}>
+          <h3 className="text-center mb-4">Recargar Saldo</h3>
+          
+          {mensaje && <div className={`alert ${mensaje.type === 'error' ? 'alert-danger' : 'alert-success'} text-center`}>{mensaje.text}</div>}
 
-              <form onSubmit={recargar}>
-                <div className="mb-3">
-                  <label className="small text-white-50"><FaUsers /> Seleccionar Usuario:</label>
-                  <select className="form-select bg-dark text-white border-secondary" value={userId} onChange={e => setUserId(e.target.value)} required>
-                    <option value="">-- Buscar en lista --</option>
-                    {usuarios.map(u => (
-                      <option key={u.id} value={u.id}>{u.nombre} (Saldo: ${Number(u.saldo).toFixed(2)})</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="small text-white-50"><FaCoins /> Monto a cargar ($):</label>
-                  <input type="number" className="form-control bg-dark text-white border-secondary" placeholder="0.00" value={monto} onChange={e => setMonto(e.target.value)} step="0.01" required />
-                </div>
-                <button type="submit" className="btn btn-success w-100 fw-bold py-2 shadow" disabled={loading}>
-                  {loading ? "Procesando..." : "EJECUTAR RECARGA"}
-                </button>
-              </form>
+          <form onSubmit={recargar}>
+            <div className="mb-3">
+              <label className="form-label small text-info"><FaUsers /> Seleccionar Estudiante:</label>
+              <select className="form-select bg-dark text-white border-secondary" value={userId} onChange={e => setUserId(e.target.value)} required>
+                <option value="">{loading ? "Cargando estudiantes..." : "-- Buscar en lista --"}</option>
+                {usuarios.map(u => (
+                  <option key={u.id} value={u.id}>{u.nombre} (Saldo: ${Number(u.saldo).toFixed(2)})</option>
+                ))}
+              </select>
             </div>
-          </div>
+
+            <div className="mb-4">
+              <label className="form-label small text-info"><FaCoins /> Monto a Cargar ($):</label>
+              <input type="number" className="form-control bg-dark text-white border-secondary" placeholder="0.00" value={monto} onChange={e => setMonto(e.target.value)} step="0.01" min="0.10" required />
+            </div>
+
+            <button type="submit" className="btn btn-success w-100 fw-bold py-2" disabled={loading || !userId}>
+              EJECUTAR RECARGA
+            </button>
+          </form>
         </div>
       </div>
     </div>
