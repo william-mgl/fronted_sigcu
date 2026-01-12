@@ -1,13 +1,12 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Comedores from "./pages/Comedores";
 import Comedor from "./pages/Comedor";
+import AdminPanel from "./pages/AdminPanel"; // 1. IMPORTANTE: Importar el panel
 
-// URL del backend (Render)
 const API_URL = import.meta.env.VITE_API_URL;
 
 function App() {
@@ -22,7 +21,7 @@ function App() {
 
       if (res.ok) {
         alert("Cuenta creada correctamente. Ahora inicia sesión.");
-        window.location.href = "/login"; // se reemplaza en Register.jsx
+        window.location.href = "/login";
       } else {
         alert(data.error || "Error creando la cuenta");
       }
@@ -43,10 +42,17 @@ function App() {
       const data = await res.json();
 
       if (res.ok) {
-        alert("Bienvenido!");
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        window.location.href = "/dashboard"; // se reemplaza en Login.jsx
+
+        // 2. LÓGICA DE REDIRECCIÓN POR ROL
+        if (data.user.rol === "admin") {
+          alert("Bienvenido, Administrador");
+          window.location.href = "/admin-panel";
+        } else {
+          alert("Bienvenido!");
+          window.location.href = "/dashboard";
+        }
       } else {
         alert(data.error || "Credenciales incorrectas");
       }
@@ -63,8 +69,13 @@ function App() {
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register onRegister={handleRegister} />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/comedores/:facultadId" element={<Comedores />} />
-        <Route path="/comedor/:comedorId" element={<Comedor />} />
+        
+        {/* 3. NUEVA RUTA DE ADMIN */}
+        <Route path="/admin-panel" element={<AdminPanel />} />
+
+        {/* Parámetros corregidos para coincidir con tus componentes anteriores */}
+        <Route path="/comedores/:id" element={<Comedores />} />
+        <Route path="/comedor/:id" element={<Comedor />} />
       </Routes>
     </BrowserRouter>
   );
