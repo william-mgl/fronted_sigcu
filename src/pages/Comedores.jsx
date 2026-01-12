@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   FaUtensils, FaArrowLeft, FaMapMarkerAlt, 
-  FaClock, FaStoreSlash, FaDoorOpen, FaSearch 
+  FaClock, FaStoreSlash, FaDoorOpen 
 } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Comedores() {
-  const { id } = useParams(); // ID de la facultad que viene de la URL
+  const { id } = useParams(); 
   const navigate = useNavigate();
   
   const [comedores, setComedores] = useState([]);
@@ -16,14 +16,18 @@ export default function Comedores() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return;
+    // Si no hay ID de facultad, redirigir al dashboard para evitar errores
+    if (!id) {
+      navigate('/dashboard');
+      return;
+    }
 
     const fetchComedores = async () => {
       setLoading(true);
+      setError(null);
       const token = localStorage.getItem("token");
 
       try {
-        // La ruta debe coincidir con: router.get("/facultad/:facultadId"...)
         const response = await fetch(`${API_URL}/api/comedores/facultad/${id}`, {
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -32,22 +36,23 @@ export default function Comedores() {
         });
 
         if (!response.ok) {
+          if (response.status === 403) throw new Error("Sesión expirada o sin permisos");
           throw new Error("No se pudo obtener la lista de comedores");
         }
 
         const data = await response.json();
-        // Validamos que la data sea un array antes de guardarla
         setComedores(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Error Fetch Comedores:", err);
         setError(err.message);
       } finally {
-        setLoading(false);
+        // Garantizamos que el spinner se apague siempre
+        setLoading(false); 
       }
     };
 
     fetchComedores();
-  }, [id]);
+  }, [id, navigate]);
 
   return (
     <div className="d-flex flex-column min-vh-100 text-white"
@@ -85,15 +90,15 @@ export default function Comedores() {
             <div className="alert alert-danger bg-danger bg-opacity-25 border-danger text-white text-center rounded-4 p-5">
                 <h4>Ocurrió un error</h4>
                 <p>{error}</p>
-                <button className="btn btn-light mt-3" onClick={() => window.location.reload()}>Reintentar</button>
+                <button className="btn btn-light mt-3 px-4 rounded-pill fw-bold" onClick={() => window.location.reload()}>Reintentar</button>
             </div>
         ) : comedores.length === 0 ? (
             <div className="text-center mt-5 p-5 rounded-4 animate__animated animate__zoomIn" 
                  style={{ background: "rgba(0,0,0,0.2)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)" }}>
                 <FaStoreSlash size={80} className="text-white-50 mb-4" />
-                <h3 className="fw-bold text-info">No hay comedores registrados</h3>
-                <p className="text-white-50 fs-5">Parece que esta facultad aún no tiene locales asignados en el sistema.</p>
-                <button className="btn btn-info rounded-pill mt-3 px-4 fw-bold" onClick={() => navigate('/dashboard')}>Explorar otras Facultades</button>
+                <h3 className="fw-bold text-info">No hay locales registrados</h3>
+                <p className="text-white-50 fs-5">Parece que esta facultad aún no tiene comedores asignados en el sistema.</p>
+                <button className="btn btn-info rounded-pill mt-3 px-4 fw-bold shadow" onClick={() => navigate('/dashboard')}>Explorar otras Facultades</button>
             </div>
         ) : (
             <div className="row g-4 justify-content-center">
@@ -107,10 +112,10 @@ export default function Comedores() {
                                 borderRadius: "25px",
                                 border: "1px solid rgba(255, 255, 255, 0.1)",
                                 transition: "all 0.3s ease",
-                                cursor: c.abierto ? "pointer" : "default"
+                                cursor: c.abierto ? "pointer" : "not-allowed"
                             }}
-                            onMouseEnter={(e) => c.abierto && (e.currentTarget.style.transform = "scale(1.03)")}
-                            onMouseLeave={(e) => c.abierto && (e.currentTarget.style.transform = "scale(1)")}
+                            onMouseEnter={(e) => c.abierto && (e.currentTarget.style.transform = "translateY(-10px)")}
+                            onMouseLeave={(e) => c.abierto && (e.currentTarget.style.transform = "translateY(0)")}
                             onClick={() => c.abierto && navigate(`/comedor/${c.id}`)}
                         >
                             <div className="card-body p-4 d-flex flex-column">
@@ -131,7 +136,7 @@ export default function Comedores() {
                                 </div>
 
                                 <p className="small text-white-50 mb-4 flex-grow-1">
-                                    {c.descripcion || "Servicio de alimentación universitaria de calidad con menús balanceados."}
+                                    {c.descripcion || "Servicio de alimentación universitaria de calidad."}
                                 </p>
 
                                 <div className="mt-auto">
@@ -150,7 +155,7 @@ export default function Comedores() {
         )}
       </div>
 
-      <footer className="mt-auto py-4 text-center text-white-50 border-top border-white border-opacity-10 shadow-lg" style={{ background: "rgba(0,0,0,0.2)" }}>
+      <footer className="mt-auto py-4 text-center text-white-50 border-top border-white border-opacity-10" style={{ background: "rgba(0,0,0,0.2)" }}>
         <small>© 2026 Universidad Técnica de Manabí - SIGCU System</small>
       </footer>
     </div>
