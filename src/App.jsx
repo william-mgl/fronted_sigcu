@@ -5,7 +5,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Comedores from "./pages/Comedores";
 import Comedor from "./pages/Comedor";
-import AdminPanel from "./pages/AdminPanel"; // 1. IMPORTANTE: Importar el panel
+import AdminPanel from "./pages/AdminDashboard"; // Nombre corregido según tu carpeta
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -18,16 +18,14 @@ function App() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-
       if (res.ok) {
-        alert("Cuenta creada correctamente. Ahora inicia sesión.");
+        alert("Cuenta creada correctamente.");
         window.location.href = "/login";
       } else {
         alert(data.error || "Error creando la cuenta");
       }
     } catch (error) {
-      console.error("Error register:", error);
-      alert("No se pudo conectar con el servidor");
+      alert("Error de conexión");
     }
   };
 
@@ -45,9 +43,9 @@ function App() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // 2. LÓGICA DE REDIRECCIÓN POR ROL
-        if (data.user.rol === "admin") {
-          alert("Bienvenido, Administrador");
+        // CAMBIO CLAVE: Validación contra 'admin_comedor'
+        if (data.user.rol === "admin_comedor") {
+          alert("Modo Administrador Activo");
           window.location.href = "/admin-panel";
         } else {
           alert("Bienvenido!");
@@ -57,8 +55,7 @@ function App() {
         alert(data.error || "Credenciales incorrectas");
       }
     } catch (error) {
-      console.error("Error login:", error);
-      alert("No se pudo conectar con el servidor");
+      alert("Error de conexión");
     }
   };
 
@@ -69,11 +66,7 @@ function App() {
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register onRegister={handleRegister} />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        
-        {/* 3. NUEVA RUTA DE ADMIN */}
         <Route path="/admin-panel" element={<AdminPanel />} />
-
-        {/* Parámetros corregidos para coincidir con tus componentes anteriores */}
         <Route path="/comedores/:id" element={<Comedores />} />
         <Route path="/comedor/:id" element={<Comedor />} />
       </Routes>
